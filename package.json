@@ -1,0 +1,18 @@
+{
+  "name": "simple-nodejs-amazon-web-scraper",
+  "version": "1.0.0",
+  "description": "An automated tool to scrape Amazon.com results",
+  "author": "Jonathan Linat <jonathan.linat@globant.com>",
+  "license": "CC0-1.0",
+  "main": "index.js",
+  "scripts": {
+    "scrape": "nodemon index.js"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0-rc.10",
+    "puppeteer": "10.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "2.0.12"
+  }
+}

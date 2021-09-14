@@ -2,6 +2,8 @@
 
 This is a really simplistic Node.js example that teach you how to scrape data from Amazon.
 
+_Original unlisted Globant Webinar: https://www.youtube.com/watch?v=Hqn8JPEOqb8_
+
 ## Details
 
 This project uses Cheerio and Puppeteer libraries.

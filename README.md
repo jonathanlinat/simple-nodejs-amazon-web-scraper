@@ -10,7 +10,8 @@ This project uses Cheerio and Puppeteer libraries.
 
 ### Prerequisites
 
-- Node 14
+- Node 18
+- pnpm 7
 
 ## First steps
 
@@ -25,7 +26,7 @@ Install the dependencies.
 
 ```
 cd simple-nodejs-amazon-web-scraper/
-npm install
+pnpm install
 ```
 
 ### Specific commands
@@ -33,7 +34,7 @@ npm install
 Run the script.
 
 ```bash
-npm run scrape
+pnpm run scrape
 ```
 
 Scraped data will be returned as an array of objects and displayed as Terminal message.

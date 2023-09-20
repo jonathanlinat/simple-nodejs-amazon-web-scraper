@@ -1,7 +1,7 @@
 /**
  * MIT License
  *
- * Copyright (c) 2018-2021 Jonathan Linat <https://github.com/jonathanlinat>
+ * Copyright (c) 2018-2023 Jonathan Linat <https://github.com/jonathanlinat>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,25 +25,48 @@
 const puppeteer = require('puppeteer')
 const cheerio = require('cheerio')
 
+const constants = require('./constants')
+const helpers = require('./helpers')
+
 /**
- * Simple Amazon Web Scraper
- * Author: Jonathan Linat <jonathan.linat@gmail.com>
- * Date: 01/09/2021
-*/
+   * Simple Amazon Web Scraper
+   * Author: Jonathan Linat <jonathan.linat@gmail.com>
+   * Date: 01/09/2021
+   * Last update: 19/09/2023
+  */
 
 // Program runs automatically
-!(async () => {
+;(async () => {
+  // Hash the key used by the caching layer
+  const cacheKey = helpers.createMD5Hash(constants.baseURL + constants.searchKeywords)
+
+  // Get the cached response
+  const cachedResults = helpers.cache.get(cacheKey)
+
+  // Return cached results if they still exist
+  if (cachedResults) {
+    console.log('Returning cached results', cachedResults)
+
+    return cachedResults
+  }
+
   // Raise a new browser instance (Asynchronously)
-  const browserInstance = await puppeteer.launch({ defaultViewport: null })
+  const browserInstance = await puppeteer.launch(constants.launchOptions)
 
   // Open a new tab (Asynchronously)
   const browserPage = await browserInstance.newPage()
 
   // Go to Amazon.com website (Asynchronously)
-  await browserPage.goto('https://www.amazon.com')
+  await browserPage.goto(constants.baseURL)
 
-  // Locate the main search field and assigns the value "rtx 2080 super" (asynchronously)
-  await browserPage.$eval('#twotabsearchtextbox', el => el.value = 'rtx 2080 super')
+  // Define the imput selector
+  const inputSelector = '#twotabsearchtextbox'
+
+  // Wait for the input element
+  await browserPage.waitForSelector(inputSelector);
+
+  // Locate the main search field and assigns the value "nvidia rtx 1080 super" (asynchronously)
+  await browserPage.$eval(inputSelector, (el, value) => el.value = value, constants.searchKeywords)
 
   // Click on the associated button to the field to start the search (asynchronously)
   await browserPage.click('#nav-search-submit-button')
@@ -58,10 +81,10 @@ const cheerio = require('cheerio')
   await browserPage.waitForNavigation()
 
   // Take a screenshot of the results page (Asynchronously)
-  await browserPage.screenshot({ path: 'available-results.png', fullPage: true })
+  await browserPage.screenshot({ path: `screenshots/${Date.now()}.png`, fullPage: true })
 
   // Create an empty collection to store the following results
-  let results = []
+  const results = []
 
   try {
     // Save in memory the HTML code of the results page (Asynchronously)
@@ -76,21 +99,24 @@ const cheerio = require('cheerio')
     // Iterate over the previously defined array
     for (const availableResult of availableResults) {
       // Load product markup in memory
-      let loadedProduct = cheerio.load(availableResult)
+      const loadedProduct = cheerio.load(availableResult)
 
       // Extract the relevant pieces of data from the saved in memory HTML code
-      let productTitle = loadedProduct('h2.a-size-mini').text().trim()
-      let productUrl = loadedProduct('h2.a-size-mini a').attr('href')
-      let productPrice = loadedProduct('span.a-price[data-a-size="l"] span.a-offscreen').text().trim()
+      const productTitle = helpers.parsedProductTitle(loadedProduct('h2.a-size-mini'))
+      const productUrl = constants.baseURL + helpers.parsedProductURL(loadedProduct('h2.a-size-mini a').attr('href'))
+      const productPrice = helpers.parsedProductPrice(loadedProduct('span.a-price[data-a-size] span.a-offscreen').first())
 
       // Include the extracted data in an object of its own within the array only if the product has a price
-      if (productPrice) { 
+      if (productPrice) {
         results.push({
           title: productTitle,
           url: productUrl,
           price: productPrice
         })
       }
+
+      // Sort the products by price (low to high)
+      helpers.sortBy('price', results)
     }
   } catch (error) {
     // Just in case of error
@@ -100,7 +126,11 @@ const cheerio = require('cheerio')
   // We're done. So, close the browser instance (Asynchronously)
   await browserInstance.close()
 
-  console.log(results)
+  // Cache the results
+  helpers.cache.set(cacheKey, results)
+
+  // Display the array of results with the extracted data collection the the console
+  console.log('Returning initial results', results)
 
   // Return the array of results with the extracted data collection
   return results
